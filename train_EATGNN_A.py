@@ -1,38 +1,4 @@
 #!/usr/bin/env python3
-"""EATGNN: corrected equivariant attention, complete single-file training script.
-
-独立文件：无需 eatgnn/ 包或原始脚本；导入本文件不会开始训练。
-
-安装依赖（先安装适合本机 CUDA 的 PyTorch）：
-    pip install 'e3nn>=0.5.1,<0.6' torch-geometric numpy pandas ase pymatgen \
-                jarvis-tools 'scikit-learn>=1.1' tqdm
-    pip install matplotlib  # 可选：--plot 绘图
-PyTorch >= 1.12；torch-scatter 可选，未安装时使用 PyTorch 原生归约。
-已验证环境：torch 1.12.1/e3nn 0.5.1 CPU；torch 2.4.1+cu121/e3nn 0.5.1 RTX 4090。
-
-运行（默认全部样本、30 轮、batch 16、seed 42、固定 90/10 划分）：
-    python train_EATGNN_corrected.py --data datasets/4201350.json --plot
-    python train_EATGNN_corrected.py --data /path/to/4201350.json \
-        --epochs 30 --batch-size 16 --seed 42 --output runs/experiment_01 --plot
-    python train_EATGNN_corrected.py --help
-
-输入为原训练数据格式：structure 列存 pymatgen Structure 字典，total 列存
-完整 3x3x3 笛卡尔压电张量。不会自动转换二维 Voigt 矩阵、单位或坐标系。
-默认 --limit 0 使用全部数据；--limit -1 可重现原脚本的末条排除切片。
-
-修正：按目标节点、按头进行邻居 softmax，使 Q/K 打分获得有效梯度。
-提速：设备端分组归约、多头统一聚合、节点投影复用、缓存固定笛卡尔变换基。
-保留：原有张量积、门控、归一化、dropout、残差、sqrt(alpha) 消息权重、
-全 key 维度缩放、池化、AdamW、梯度裁剪、AMP、学习率调度和 batch 平均指标。
-
-输出：training.json（配置/模型构造信息/逐轮指标）、loss_history.csv、
-model.pt（最后一轮 state_dict）、best_model.pt（验证 MSE 最优 state_dict）。
---plot 额外保存 loss_curves.png/pdf。已有实验目录不会被覆盖。
-旧版 state_dict 的名称和形状兼容；修正注意力后应重新验证/训练。
-参考实现说明： https://docs.e3nn.org/en/stable/guide/transformer.html
-多头布局沿用原脚本中参考 Equiformer 的实现；激活和 UVU 层沿用原脚本实现。
-Equiformer: https://github.com/atomicarchitects/equiformer
-"""
 from contextlib import nullcontext
 from dataclasses import dataclass, asdict, fields
 from pathlib import Path
@@ -1141,7 +1107,7 @@ class RunRecorder:
 
 def main():
     parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+        description="EATGNN training", formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument(
         "--config", type=Path, help="Optional JSON overrides for TrainConfig"
